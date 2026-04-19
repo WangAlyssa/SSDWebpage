@@ -1,25 +1,291 @@
-import styles from "./Home.module.css";
-import ImageCarousel from "./image-carousel";
+'use client';
 
-export default function Home() {
-  return (
-    <div className={styles.landingBackground}>
-      <main className={styles.content}>
-        <h1>Society of Software Developers</h1>
-        <h2>Software Development & Design</h2>
-        <p>
-          We are an organization that helps students learn and apply software
-          engineering principles to real-world applications. We host weekly
-          workshops on topics like software design to help bridge the gap
-          between what students need to know for industry and what they&apos;re
-          taught in classes. These concepts help with building complex software
-          systems and better prepare members for team projects, internships, and
-          careers in software development.
-        </p>
-        <h2>Spring 2026 Meetings</h2>
-        <p>Wednesdays, 6:00pm, Location: TBA on Discord & Instagram</p>
-        <ImageCarousel />
-      </main>
+import { useEffect, useRef } from 'react';
+import Image from 'next/image';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+/* ================= GSAP REGISTRATION ================= */
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
+
+/* ================= DIVIDER COMPONENT ================= */
+const PhotoDivider = ({ images, reverse = false }: { images: string[], reverse?: boolean }) => (
+  <section className="w-full bg-[#FAF9F6] py-16 md:py-24 border-y-[4px] border-ink relative z-10 flex flex-col items-center overflow-hidden">
+    <div className={`flex gap-6 md:gap-10 px-6 w-full max-w-[1500px] overflow-x-auto no-scrollbar snap-x ${reverse ? 'flex-row-reverse' : ''}`}>
+      {images.map((src, i) => (
+        <div key={i} className="relative w-[260px] h-[180px] md:w-[400px] md:h-[260px] shrink-0 border-[4px] border-ink shadow-[8px_8px_0_#B3E5FC] snap-center hover:-translate-y-2 hover:shadow-[12px_12px_0_#000000] transition-all duration-300 interactive-element">
+          <Image src={src} alt={`Divider Photo ${i}`} fill className="object-cover" />
+        </div>
+      ))}
     </div>
+  </section>
+);
+
+/* ================= HOME PAGE COMPONENT ================= */
+export default function HomePage() {
+  const heroRef = useRef<HTMLDivElement>(null);
+  const heroTextRefs = useRef<HTMLSpanElement[]>([]);
+  const philRef = useRef<HTMLDivElement>(null);
+  
+  const wallContainerRef = useRef<HTMLDivElement>(null);
+  const wallTrackRef = useRef<HTMLDivElement>(null);
+  const wallSpeed = useRef(-1);
+  const currentXPos = useRef(0);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      /* --- 1. Hero Animations --- */
+      const tl = gsap.timeline();
+      tl.fromTo('.hero-bg-img', { scale: 1.15 }, { scale: 1.05, duration: 3.5, ease: 'power3.out' })
+        .to(heroTextRefs.current, { y: '0%', duration: 1.2, ease: 'power4.out', stagger: 0.15 }, "-=3");
+
+      gsap.to('.hero-content-wrap', { 
+        yPercent: -30, 
+        ease: 'none', 
+        scrollTrigger: { trigger: heroRef.current, start: 'top top', end: 'bottom top', scrub: true } 
+      });
+
+      /* --- 2. Philosophy Reveal --- */
+      gsap.timeline({ scrollTrigger: { trigger: philRef.current, start: 'top 75%' } })
+        .to('.overline-text', { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.2 })
+        .to('.reveal-text', { y: '0%', duration: 1.2, ease: 'power4.out', stagger: 0.1 }, "-=0.6")
+        .to('.body-text', { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }, "-=0.8");
+
+      /* --- 3. Feature Sections Parallax --- */
+      gsap.utils.toArray('.section-bg-wrap').forEach((wrap: any) => {
+        const img = wrap.querySelector('.section-bg-img');
+        gsap.fromTo(img, 
+          { yPercent: -15 }, 
+          { 
+            yPercent: 15, 
+            ease: "none", 
+            scrollTrigger: { trigger: wrap.parentElement, start: "top bottom", end: "bottom top", scrub: true } 
+          }
+        );
+      });
+
+      gsap.utils.toArray('.floating-card-layer').forEach((layer: any) => {
+        gsap.fromTo(layer, 
+          { y: 100 }, 
+          {
+            y: -100,
+            ease: "none",
+            scrollTrigger: { trigger: layer.parentElement, start: "top bottom", end: "bottom top", scrub: true }
+          }
+        );
+      });
+    });
+
+    /* --- 4. Photo Wall Interactive Logic --- */
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!wallContainerRef.current) return;
+      const rect = wallContainerRef.current.getBoundingClientRect();
+      const relX = e.clientX - rect.left;
+      const percentage = relX / rect.width;
+      
+      if (percentage < 0.4) { 
+        wallSpeed.current = 8 * (0.4 - percentage) * 2.5; 
+      } else if (percentage > 0.6) { 
+        wallSpeed.current = -8 * (percentage - 0.6) * 2.5; 
+      } else { 
+        wallSpeed.current = 0; 
+      }
+    };
+
+    const handleMouseLeave = () => {
+      wallSpeed.current = -1;
+    };
+
+    const animatePhotoWall = () => {
+      if (!wallTrackRef.current) return;
+      currentXPos.current += wallSpeed.current;
+      
+      const trackWidth = wallTrackRef.current.scrollWidth / 2; 
+      if (currentXPos.current <= -trackWidth) { 
+        currentXPos.current += trackWidth; 
+      } else if (currentXPos.current > 0) { 
+        currentXPos.current -= trackWidth; 
+      }
+      
+      gsap.set(wallTrackRef.current, { x: currentXPos.current });
+      rafRef.current = requestAnimationFrame(animatePhotoWall);
+    };
+
+    const container = wallContainerRef.current;
+    if (container) {
+      container.addEventListener('mousemove', handleMouseMove);
+      container.addEventListener('mouseleave', handleMouseLeave);
+      rafRef.current = requestAnimationFrame(animatePhotoWall);
+    }
+
+    return () => {
+      ctx.revert();
+      if (container) {
+        container.removeEventListener('mousemove', handleMouseMove);
+        container.removeEventListener('mouseleave', handleMouseLeave);
+      }
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  const addToHeroTextRefs = (el: HTMLSpanElement | null) => {
+    if (el && !heroTextRefs.current.includes(el)) {
+      heroTextRefs.current.push(el);
+    }
+  };
+
+  // 绝不重复的照片墙数据
+  const photoImages = [
+    "/Photos/2026SpringGBM/2ndGBM2.jpg", 
+    "/Photos/2020GBM/2020GBM9.PNG", 
+    "/Photos/Event/Event25.PNG", 
+    "/Photos/2019GBM/2019GBM4.PNG", 
+    "/Photos/Event/Event33.PNG", 
+    "/Photos/2026SpringGBM/2ndGBM14.jpg",
+    "/Photos/2020GBM/2020GBM3.PNG"
+  ];
+
+  return (
+    <>
+      {/* ================= HERO SECTION ================= */}
+      <section ref={heroRef} className="relative w-full h-screen flex items-center justify-center overflow-hidden bg-ink pt-20">
+        <div className="absolute inset-0 w-full h-full opacity-40 hero-bg-img">
+          {/* 主背景 1 */}
+          <Image src="/Photos/2026SpringGBM/2ndGBM1.jpg" alt="Hero Background" fill className="object-cover" priority />
+        </div>
+        <div className="absolute inset-0 w-full h-full bg-gradient-to-t from-ink/90 to-transparent z-0" />
+        
+        <div className="hero-content-wrap relative z-10 flex flex-col items-center text-center mt-12 px-4 w-full">
+          <h2 className="text-sblue text-sm md:text-base font-bold tracking-[0.2em] uppercase mb-6 font-sans overflow-hidden">
+            <span ref={addToHeroTextRefs} className="block translate-y-[110%]">@University of Florida</span>
+          </h2>
+          <h1 className="text-white text-5xl md:text-7xl lg:text-[100px] font-serif font-black uppercase tracking-tighter mb-8 leading-[0.9]">
+            <span className="overflow-hidden block"><span ref={addToHeroTextRefs} className="block translate-y-[110%]">SOCIETY OF</span></span>
+            <span className="overflow-hidden block"><span ref={addToHeroTextRefs} className="block text-sblue italic translate-y-[110%]">SOFTWARE</span></span>
+            <span className="overflow-hidden block"><span ref={addToHeroTextRefs} className="block translate-y-[110%]">DEVELOPERS</span></span>
+          </h1>
+          <p className="text-gray-300 max-w-3xl text-base md:text-xl font-medium font-sans overflow-hidden">
+            <span ref={addToHeroTextRefs} className="block translate-y-[110%]">
+              We ditch the boring lectures for hands-on keyboards. From packing classrooms in the CISE building to surviving late-night SwampHacks coding sprints, we're a community of Gators passionate about building real things.
+            </span>
+          </p>
+        </div>
+      </section>
+
+      {/* ================= PHILOSOPHY SECTION ================= */}
+      <section ref={philRef} className="relative w-full pt-32 pb-16 px-6 md:px-20 flex flex-col items-center justify-start bg-transparent">
+        <div className="max-w-4xl text-center flex flex-col items-center">
+          <h2 className="text-ink font-bold tracking-[0.15em] text-lg uppercase overline-text opacity-0 translate-y-6 font-sans">
+            IT STARTS WITH A PHILOSOPHY
+          </h2>
+          <div className="w-16 h-[2px] bg-sblue my-6 overline-text opacity-0" />
+          
+          <h3 className="text-5xl md:text-7xl font-serif font-bold text-ink uppercase mb-8 leading-[1.1] tracking-tight italic">
+            <span className="overflow-hidden block"><span className="reveal-text block translate-y-[110%]">WHERE CODE</span></span>
+            <span className="overflow-hidden block"><span className="reveal-text block translate-y-[110%]">MATTERS</span></span>
+          </h3>
+
+          <p className="body-text text-lg md:text-xl text-gray-800 font-sans max-w-3xl leading-relaxed opacity-0 translate-y-6">
+            Whether you're a freshman writing your first "Hello World" or a senior battling segmentation faults prepping for technical interviews, SSD is your home at the University of Florida. We believe in learning by doing, offering the hardcore, caffeine-fueled engineering experience you can't get from a textbook alone.
+          </p>
+        </div>
+      </section>
+
+      {/* ================= INTERACTIVE PHOTO WALL ================= */}
+      <section ref={wallContainerRef} className="relative w-full h-[50vh] min-h-[400px] overflow-hidden bg-ink py-8 cursor-none border-y-[4px] border-sblue shadow-2xl interactive-element">
+        <div ref={wallTrackRef} className="flex h-full items-center gap-6 px-6 w-max">
+          {[...photoImages, ...photoImages].map((src, index) => (
+            <div key={index} className="relative h-[90%] w-[300px] md:w-[450px] shrink-0 rounded shadow-lg border border-gray-800 hover:border-sblue transition-colors duration-300">
+              <Image src={src} alt={`SSD Moment ${index}`} fill className="object-cover rounded" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ================= PARALLAX FEATURE 1: GBMs ================= */}
+      <section className="relative w-full h-[90vh] flex items-center justify-center overflow-hidden bg-ink border-b-[4px] border-ink">
+        <div className="section-bg-wrap absolute inset-0 w-full h-[120%] -top-[10%] z-0">
+          {/* 视差背景 1 */}
+          <Image src="/Photos/2026SpringGBM/2ndGBM5.jpg" alt="GBM Background" fill className="section-bg-img object-cover opacity-60" />
+        </div>
+        <div className="max-w-4xl px-6 w-full floating-card-layer relative z-10">
+          <div className="bg-white border-[4px] border-ink p-10 md:p-14 shadow-[20px_20px_0px_#B3E5FC] md:w-3/4 interactive-element">
+            <span className="text-ink font-bold tracking-[0.15em] text-sm mb-4 font-sans block">MOMENTS TO REMEMBER</span>
+            <div className="w-12 h-[2px] bg-sblue mb-6" />
+            <h3 className="text-5xl lg:text-7xl font-serif font-bold uppercase mb-8 leading-none tracking-tight">GBMs &<br />SOCIALS</h3>
+            <p className="text-gray-800 text-lg lg:text-xl font-sans leading-relaxed">
+              Pizza, code, and pure chaos. Our General Body Meetings are the heartbeat of the UF tech scene. We bring Gator developers together to network, swap debugging horror stories, and level up their engineering skills in a completely collaborative environment.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* --- Divider 1 --- */}
+      <PhotoDivider images={["/Photos/2020GBM/2020GBM6.PNG", "/Photos/2019GBM/2019GBM6.PNG", "/Photos/2026SpringGBM/2ndGBM7.jpg", "/Photos/2020GBM/2020GBM15.PNG"]} />
+
+      {/* ================= PARALLAX FEATURE 2: POSTERS ================= */}
+      <section className="relative w-full h-[90vh] flex items-center justify-center overflow-hidden bg-ink border-y-[4px] border-ink">
+        <div className="section-bg-wrap absolute inset-0 w-full h-[120%] -top-[10%] z-0">
+          {/* 视差背景 2 */}
+          <Image src="/Photos/Event/Event4.PNG" alt="Design Background" fill className="section-bg-img object-cover opacity-60" />
+        </div>
+        <div className="max-w-4xl px-6 w-full flex justify-end floating-card-layer relative z-10">
+          <div className="bg-white border-[4px] border-ink p-10 md:p-14 shadow-[20px_20px_0px_#B3E5FC] md:w-3/4 interactive-element">
+            <span className="text-ink font-bold tracking-[0.15em] text-sm mb-4 font-sans block">VISUAL IDENTITY</span>
+            <div className="w-12 h-[2px] bg-sblue mb-6" />
+            <h3 className="text-5xl lg:text-7xl font-serif font-bold uppercase mb-8 leading-none tracking-tight">OUR POSTER<br />GALLERY</h3>
+            <p className="text-gray-800 text-lg lg:text-xl font-sans leading-relaxed">
+              Great code deserves an incredible UI. Take a look at the flyers, merch, and branding crafted by our talented design team for hackathons and workshops. Because let's be real, aesthetics matter just as much as an optimized sorting algorithm.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* --- Divider 2 --- */}
+      <PhotoDivider reverse={true} images={["/Photos/2020GBM/2020GBM8.PNG", "/Photos/2026SpringGBM/2ndGBM11.jpg", "/Photos/2019GBM/2019GBM3.PNG", "/Photos/2020GBM/2020GBM12.PNG"]} />
+
+      {/* ================= PARALLAX FEATURE 3: PROJECTS ================= */}
+      <section className="relative w-full h-[90vh] flex items-center justify-center overflow-hidden bg-ink border-t-[4px] border-ink">
+        <div className="section-bg-wrap absolute inset-0 w-full h-[120%] -top-[10%] z-0">
+          {/* 视差背景 3 */}
+          <Image src="/Photos/2019GBM/2019GBM2.PNG" alt="Projects Background" fill className="section-bg-img object-cover opacity-60" />
+        </div>
+        <div className="max-w-4xl px-6 w-full floating-card-layer relative z-10">
+          <div className="bg-white border-[4px] border-ink p-10 md:p-14 shadow-[20px_20px_0px_#B3E5FC] md:w-3/4 interactive-element">
+            <span className="text-ink font-bold tracking-[0.15em] text-sm mb-4 font-sans uppercase block">BUILDING BEYOND CLASS</span>
+            <div className="w-12 h-[2px] bg-sblue mb-6" />
+            <h3 className="text-5xl lg:text-7xl font-serif font-bold text-ink uppercase mb-8 leading-none tracking-tight">
+              PROJECT<br />SHOWCASE
+            </h3>
+            <p className="text-gray-800 text-lg lg:text-xl font-sans leading-relaxed">
+              We turn insane amounts of coffee into fully deployed applications. Watch our members team up for open-source contributions, conquer weekend hackathons across Florida, and build software that actually serves the Gainesville community.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= GRID SHOWCASE ================= */}
+      <section className="w-full bg-[#FAF9F6] pt-24 pb-32 px-6 border-t-[4px] border-ink relative z-10">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-16">
+          {[
+            { img: "/Photos/Event/Event6.PNG", title: "SPECIAL INTEREST GROUPS", desc: "Dive deep into specific tech domains, from React frontend frameworks to massive backend architectures." },
+            { img: "/Photos/2026SpringGBM/2ndGBM10.jpg", title: "PROJECT INCUBATOR", desc: "Form a team, build your ideas from scratch, and get ruthless code reviews from senior Gators." },
+            { img: "/Photos/Event/Event19.PNG", title: "TECH NETWORKING", desc: "Connect with industry experts and outstanding UF alumni for internship referrals and resume roasts." },
+            { img: "/Photos/Event/Event43.PNG", title: "OPEN SOURCE", desc: "Contribute to club open-source projects and improve your Git collaboration standards in a real engineering environment." }
+          ].map((item, idx) => (
+            <div key={idx} className="flex flex-col cursor-none group interactive-element">
+              <div className="relative overflow-hidden mb-6 shadow-[6px_6px_0_#000000] border-[3px] border-ink rounded-sm h-56 w-full">
+                <Image src={item.img} alt={item.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+              </div>
+              <h4 className="text-xl font-serif font-bold text-ink uppercase mb-3 tracking-tight">{item.title}</h4>
+              <p className="text-gray-700 mb-6 flex-grow text-sm font-sans leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
