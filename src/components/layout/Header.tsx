@@ -28,27 +28,24 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 w-full z-50 flex flex-col bg-ink/95 backdrop-blur-md text-white shadow-xl border-b border-white/10">
       
-      {/* Top Bar: Logo + Socials + Call to Action */}
-      <div className="flex justify-between items-center px-6 md:px-10 py-3 border-b border-gray-800 text-[10px] md:text-xs tracking-widest uppercase">
+      <div className="flex justify-between items-center px-4 md:px-10 py-3 border-b border-gray-800 text-[10px] md:text-xs tracking-widest uppercase">
         
-        {/* Left: Brand Logo */}
-        <Link href="/" className="font-bold flex items-center gap-3 cursor-none group interactive-element">
-          <div className="relative w-7 h-7 md:w-8 md:h-8 group-hover:scale-110 transition-transform duration-300">
+        <Link href="/" className="font-bold flex items-center gap-2 md:gap-3 group transition-colors flex-shrink">
+          <div className="relative w-6 h-6 md:w-8 md:h-8 shrink-0 group-hover:scale-110 transition-transform duration-300">
             <Image src="/Photos/System/ssd_logo.svg" alt="SSD Logo" fill className="object-contain drop-shadow-md" />
           </div>
           <span className="hidden sm:inline font-serif font-bold text-lg tracking-wide group-hover:text-sblue transition-colors duration-300">
             SOCIETY OF SOFTWARE DEVELOPERS
           </span>
-          <span className="inline sm:hidden font-serif font-bold text-lg group-hover:text-sblue transition-colors">
+          <span className="inline sm:hidden font-serif font-bold text-[15px] group-hover:text-sblue transition-colors">
             SSD
           </span>
         </Link>
         
-        {/* Right: Social Icons + JOIN US Button */}
-        <div className="flex items-center gap-4 md:gap-6 font-sans">
+        <div className="flex items-center gap-2 md:gap-6 font-sans shrink-0">
           
-          {/* Social Icons (Hidden on super small mobile screens to keep it clean) */}
-          <div className="hidden lg:flex items-center gap-5">
+          {/* Here we add shrink-0 to guarantee icons never disappear */}
+          <div className="flex items-center gap-2.5 sm:gap-4 md:gap-5 shrink-0">
             {SOCIAL_LINKS.map((social) => (
               <a 
                 key={social.name} 
@@ -56,33 +53,31 @@ export default function Header() {
                 target="_blank" 
                 rel="noopener noreferrer" 
                 title={social.name}
-                className="text-white hover:text-sblue cursor-none transition-all duration-300 hover:scale-110 interactive-element"
+                className="w-[14px] h-[14px] md:w-5 md:h-5 text-white hover:text-sblue transition-all duration-300 hover:scale-110 shrink-0 block"
               >
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <svg className="w-full h-full fill-current" viewBox="0 0 24 24">
                   <path d={social.path} />
                 </svg>
               </a>
             ))}
           </div>
 
-          {/* Join Us Button */}
           <Link 
             href="https://linktr.ee/ufssd" 
             target="_blank" 
-            className="bg-sblue text-ink px-4 md:px-5 py-1.5 md:py-2 rounded-sm hover:bg-white transition-all duration-300 cursor-none font-bold tracking-widest text-[10px] interactive-element hover:shadow-[0_0_15px_rgba(179,229,252,0.5)] whitespace-nowrap"
+            className="bg-sblue text-ink px-3 md:px-5 py-1.5 md:py-2 rounded-sm hover:bg-white transition-all duration-300 font-bold tracking-widest text-[9px] md:text-[10px] hover:shadow-[0_0_15px_rgba(179,229,252,0.5)] whitespace-nowrap shrink-0"
           >
             JOIN US
           </Link>
         </div>
       </div>
 
-      {/* Navigation Bar */}
-      <nav className="flex justify-center items-center py-3 text-[11px] md:text-xs font-bold tracking-widest gap-8 md:gap-16 uppercase font-sans">
+      <nav className="flex justify-center items-center py-3 text-[10px] md:text-xs font-bold tracking-widest gap-6 md:gap-16 uppercase font-sans">
         {NAV_LINKS.map((link) => (
           <Link 
             key={link.label} 
             href={link.href}
-            className={`cursor-none transition-colors duration-300 interactive-element ${
+            className={`transition-colors duration-300 ${
               pathname === link.href ? 'text-sblue' : 'text-gray-400 hover:text-sblue'
             }`}
           >
